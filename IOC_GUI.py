@@ -3,6 +3,7 @@ from tkinter import filedialog;
 class IOC_GUI:
     import IOC_Controller;
     from tkinter import ttk;
+
     def __init__(self, mainframe):
         from tkinter import ttk;
         self.ioc_controller = self.IOC_Controller.IOC_Controller();
@@ -16,22 +17,25 @@ class IOC_GUI:
         ip = StringVar();
         self.file_path = StringVar();
 
+        #Creating UI for scanning url/ip
         self.url_entry = ttk.Entry(mainframe, width=30, textvariable=url);
         self.url_entry.grid(column=2, row=1, sticky=(W, E));
-        ttk.Label(mainframe, text='Input Url').grid(column=1, row=1, sticky=E);
+        ttk.Label(mainframe, text='Url or IP Address').grid(column=1, row=1, sticky=E);
         scan_url_button = ttk.Button(mainframe, text='Scan URL or IP against VirusTotal', command=self.run_url_scanner);
         scan_url_button.grid(column = 3, row = 1, sticky = W);
 
+        #Creating UI for scanning ip to honeypot
         self.ip_entry = ttk.Entry(mainframe, width=30, textvariable=ip);
         self.ip_entry.grid(column=2, row=2, sticky=(W, E));
-        ttk.Label(mainframe, text='Input IP Address').grid(column=1, row=2, sticky=E);
+        ttk.Label(mainframe, text='IP Address').grid(column=1, row=2, sticky=E);
         scan_ip_button = ttk.Button(mainframe, text='Scan IP against Honeypot Database', command=self.run_ip_scanner);
         scan_ip_button.grid(column = 3, row = 2, sticky = W);
 
+        #Creating UI for file scan
         self.file_entry = ttk.Entry(mainframe, width=20);
         self.file_entry.grid(column = 2, row = 3, sticky = W);
         self.file_entry.config(state = DISABLED);
-        ttk.Label(mainframe, text='Input File').grid(column=1, row=3, sticky=E);
+        ttk.Label(mainframe, text='File').grid(column=1, row=3, sticky=E);
         navigate_button = ttk.Button(mainframe, text='Choose File', command=self.choose_dialog);
         navigate_button.grid(column = 3, row = 3, sticky = W);
         self.scan_file_button = ttk.Button(mainframe, text='Scan File', command=self.run_file_scanner);
@@ -69,8 +73,8 @@ class IOC_GUI:
         self.file_path = filedialog.askopenfilename();
         if self.file_path:
             self.file_entry.config(state=WRITABLE);
-            file_path = os.path.basename(self.file_path); #self.file_path is used for running IOC_File
-            self.file_entry.insert(0, file_path);
+            file_name = os.path.basename(self.file_path); #Creating the file name to display on the textbox
+            self.file_entry.insert(0, file_name);
             self.file_entry.config(state=DISABLED);
             self.scan_file_button.config(state='Normal');
         return;
