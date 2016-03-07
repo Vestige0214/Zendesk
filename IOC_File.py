@@ -5,40 +5,47 @@ class IOC_File():
     import collections
 
     def scan_file(self, file_path):
+        ioc_helper = self.IOC_Helper;
         import os
         exceptions = self.requests.exceptions;
         file_name = os.path.basename(file_path);
         if os.path.isfile(file_path) == False:
-            print("The file does not exist");
+            ioc_helper.log_error("The file does not exist");
             return;
         path = '/v2/file';
         url = self.host + path;
         headers = {'apikey' : self.apikey, 'filename' : file_name};
         with open(file_path, 'rb') as file:
             r = self.post(url, file, headers);
-        response_dict = self.deserialize(r.content);
-        data_id = response_dict['data_id'];
-        rest_ip = response_dict['rest_ip'];
-        return data_id, rest_ip;
+            if r != -1:
+                response_dict = self.deserialize(r.content);
+                data_id = response_dict['data_id'];
+                rest_ip = response_dict['rest_ip'];
+                return data_id, rest_ip;
+            return;
 
     def retrieve_report(self, data_id, rest_ip):
+        ioc_helper = self.IOC_Helper;
         headers = {'apikey' : self.apikey};
         path = '/v2/file/' + data_id;
         url = self.host + path;
         while True:
             r = self.get(url, headers);
+            if r == -1:
+                break;
             r = self.deserialize(r.content);
             if r['scan_results']['progress_percentage'] == 100:
+                self.__print_result(r);
                 break;
-        self.__print_result(r);
         return;
 
     def __print_result(self, r):
+        ioc_helper = self.IOC_Helper;
         scan_results = r['scan_results'];
         file_info = r['file_info'];
         import datetime
         if scan_results['scan_all_result_i'] == 11:
-            print('Scan was aborted');
+            ioc_helper.log_error('Scan was aborted');
             return;
         if scan_results['scan_all_result_i'] == 1:
             with open('IOC_File_Result[' + str(datetime.datetime.now()) + '].txt', 'w') as result_file:
@@ -51,14 +58,6 @@ class IOC_File():
                         result_file.write('Threat Found: ' + scanner['threat_found'] + '\n');
                         result_file.writelines('Source: ' + element + '\n\n');
 
-
-    def __check_result(self, response):
-        dict_error = {400 : 'Bad Request', 401 : 'Invalid API Key', 403 : 'Scan limit reached',
-                      403 : 'No private scanning for account', 500 : 'Server temporarily unavailable',
-                      503 : 'Server unable to handle request or too busy'}
-        if response.status_code != self.requests.codes.ok:
-            print(dict_error[response.status_code]);
-            exit(0);
 
 d = IOC_File();
 data_id, rest_ip = d.scan_file('/Users/patterson/Downloads/dummyvir');

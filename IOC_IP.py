@@ -1,37 +1,19 @@
 class IOC_IP():
     import IOC_Helper
     import requests
-    virustotal_url = "https://www.virustotal.com";
-    virustotal_apikey = "5774a9be1829251dec549faf861bdffed45266bf988e138b625a20595a3f995b";
-
-    def scan_virustotal(self, valid_ip_array):
-        path = "/vtapi/v2/url/scan";
-        headers = None;
-        scan_url = self.virustotal_url + path;
-        for ip in valid_ip_array:
-            body = {'url': ip, 'apikey': self.virustotal_apikey};
-            r = self.IOC_Helper.post(scan_url, body, None);
-            r = self.IOC_Helper.deserialize(r.content);
-            return r['scan_id'];
-
-    def report_virustotal(self, scan_id):
-        report_url = self.virustotal_url + "/vtapi/v2/url/report";
-        body = {'scan_id': scan_id, 'apikey': self.virustotal_apikey};
-        r = self.IOC_Helper.post(report_url, body, None);
-        r = self.IOC_Helper.deserialize(r.content);
-        return;
 
     def scan_ip(self, *ip_list):
+        ioc_helper = self.IOC_Helper;
         import ipaddress
         valid_ip_array = [];
         for ip in ip_list:  # skipping any invalid ip addresses
             try:
                 valid_ip_array.append(str(ipaddress.ip_address(ip)));
             except ValueError:
-                print('%s is not a valid IP address' % ip);
+                ioc_helper.log_error('%s is not a valid IP address' % ip);
                 continue;
         if not valid_ip_array:
-            print('no valid IP addresses were provided');
+            ioc_helper.log_error('no valid IP addresses were provided');
             return;
         scan_id = self.scan_honeypot(valid_ip_array);
 
@@ -42,7 +24,7 @@ class IOC_IP():
         honeypot = 'honeypot.json';
         parsed_data = [];
         payload = [];
-        with open('IOC_URL_Result[' + str(datetime.datetime.now()) + '].txt', 'w') as result_file:
+        with open('IOC_IP_Result[' + str(datetime.datetime.now()) + '].txt', 'w') as result_file:
             with open(honeypot, 'r') as content_file:  # running check against honeypot database
                 for line in content_file:
                     parsed_line = json.loads(line);

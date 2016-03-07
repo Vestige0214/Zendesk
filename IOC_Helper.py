@@ -1,12 +1,13 @@
 import requests
 import json
+import datetime
+import logging
 def check_result(response):
-    dict_error = {400: 'Bad Request', 401: 'Invalid API Key', 403: 'Scan limit reached',
-                  403: 'No private scanning for account', 500: 'Server temporarily unavailable',
-                  503: 'Server unable to handle request or too busy'}
-    if response.status_code != requests.codes.ok:
-        print(dict_error[response.status_code]);
-        exit(0);
+    try:
+        response.raise_for_status();
+    except requests.exceptions.HTTPError as e:
+        log_exception(str(e.args));
+        return True;
 
 
 def post(url, body, headers):
@@ -14,15 +15,49 @@ def post(url, body, headers):
         r = requests.post(url, body);
     else:
         r = requests.post(url, body, headers=headers);
-    check_result(r);
+    if check_result(r) == True:
+        return -1;
     return r;
 
 
 def get(url, headers):
     r = requests.get(url, headers=headers);
-    check_result(r);
+    if check_result(r) == True:
+        return -1;
     return r;
 
 
 def deserialize(content):
     return json.loads(content.decode('utf-8'));
+
+def print_date_string():
+    return str(datetime.datetime.now());
+
+def get_time():
+    return (datetime.time.now());
+
+def check_url(url):
+    from urllib.parse import urlparse
+    result = urlparse(url);
+    if (result[0] == '' or result[1] == ''):
+        if result[0] == '':
+            log_error("invalid url: " + url + " missing scheme\n");
+        else:
+            log_error("invalid url: " + url + " missing netloc\n");
+        return False;
+    return True;
+
+def log_error(message):
+    logging.error('[' + print_date_string() + ']' + message);
+
+def log_exception(message):
+    logging.exception('[' + print_date_string() + ']' + message);
+
+
+# def write_entry(fd, result_dict, tuple):
+#     for item in tuple:
+#         fd.write(result_format(tuple, result_dict[tuple]));
+#     fd.write('\n');
+#
+# def result_format(item, result):
+#     return (item + ': ' + result + '\n');
