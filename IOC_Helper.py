@@ -2,6 +2,7 @@ import requests
 import json
 import datetime
 import logging
+
 def check_result(response):
     try:
         response.raise_for_status();
@@ -39,13 +40,10 @@ def get_time():
 def check_url(url):
     from urllib.parse import urlparse
     result = urlparse(url);
-    if (result[0] == '' or result[1] == ''):
-        if result[0] == '':
-            log_error("invalid url: " + url + " missing scheme\n");
-        else:
-            log_error("invalid url: " + url + " missing netloc\n");
-        return False;
-    return True;
+    if (result[1] == ''):
+        log_error("invalid url: " + url + " missing netloc\n");
+        return -1;
+    return url;
 
 def log_error(message):
     logging.error('[' + print_date_string() + ']' + message);

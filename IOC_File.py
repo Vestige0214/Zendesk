@@ -3,7 +3,7 @@ class IOC_File():
     host = "https://scan.metadefender.com";
     import IOC_Helper
     import collections
-
+    import requests
     def scan_file(self, file_path):
         ioc_helper = self.IOC_Helper;
         import os
@@ -16,27 +16,31 @@ class IOC_File():
         url = self.host + path;
         headers = {'apikey' : self.apikey, 'filename' : file_name};
         with open(file_path, 'rb') as file:
-            r = self.post(url, file, headers);
+            r = self.IOC_Helper.post(url, file, headers);
             if r != -1:
-                response_dict = self.deserialize(r.content);
+                response_dict = self.IOC_Helper.deserialize(r.content);
                 data_id = response_dict['data_id'];
                 rest_ip = response_dict['rest_ip'];
                 return data_id, rest_ip;
             return;
 
     def retrieve_report(self, data_id, rest_ip):
+        import time;
         ioc_helper = self.IOC_Helper;
         headers = {'apikey' : self.apikey};
         path = '/v2/file/' + data_id;
         url = self.host + path;
+        time_out = time.time() + 60*5; #provided by stackoverflow Andrew Clark
         while True:
-            r = self.get(url, headers);
+            r = self.IOC_Helper.get(url, headers);
             if r == -1:
                 break;
-            r = self.deserialize(r.content);
+            r = self.IOC_Helper.deserialize(r.content);
             if r['scan_results']['progress_percentage'] == 100:
                 self.__print_result(r);
                 break;
+            if time.time() > time_out:
+                ioc_helper.log_error('Timed out at 5 minutes for file scanning');
         return;
 
     def __print_result(self, r):
@@ -48,7 +52,7 @@ class IOC_File():
             ioc_helper.log_error('Scan was aborted');
             return;
         if scan_results['scan_all_result_i'] == 1:
-            with open('IOC_File_Result[' + str(datetime.datetime.now()) + '].txt', 'w') as result_file:
+            with open('IOC_File_Result[' + ioc_helper.print_date_string() + '].txt', 'w') as result_file:
                 result_file.write('File Name: ' + file_info['display_name'] + '\n');
                 result_file.write('File Description: ' + file_info['file_type_description'] + '\n');
                 result_file.write('File Size: ' + str(file_info['file_size']) + ' bytes\n\n');
@@ -57,10 +61,7 @@ class IOC_File():
                     if scanner['scan_result_i'] == 1:
                         result_file.write('Threat Found: ' + scanner['threat_found'] + '\n');
                         result_file.writelines('Source: ' + element + '\n\n');
-
-
-d = IOC_File();
-data_id, rest_ip = d.scan_file('/Users/patterson/Downloads/dummyvir');
-d.retrieve_report(data_id, rest_ip);
-
+        else:
+            with open('IOC_File_Result[' + ioc_helper.print_date_string() + '].txt', 'w') as result_file:
+                result_file.write(file_info['display_name'] + ' is clean\n');
 

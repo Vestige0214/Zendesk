@@ -11,14 +11,16 @@ class IOC_URL:
         headers = None;
         scan_url = self.virustotal_url + path;
         for url in valid_url_array:
-            if not ioc_helper.check_url(url):
-                ioc_helper.log_error('invalid url: ' + url);
-            else:
+            url = ioc_helper.check_url(url);
+            if url != -1: #Check will return the url with proper scheme, only when netloc is missing will it return -1
                 body = {'url': url, 'apikey': self.virustotal_apikey};
                 r = self.IOC_Helper.post(scan_url, body, None);
-                if r != -1:
+                if r != -1 and r.status_code == 200:
                         r = self.IOC_Helper.deserialize(r.content);
-                        result.append(r['scan_id']);
+                        if r['response_code'] == -1:
+                            ioc_helper.log_error(r['verbose_msg'] + " URL: " + url);
+                        else:
+                            result.append(r['scan_id']);
         return result;
 
     def report_virustotal(self, scan_id_array):
@@ -31,14 +33,16 @@ class IOC_URL:
                 time_out = time.time() + 60*5; #provided by stackoverflow Andrew Clark
                 while True:
                     r = self.IOC_Helper.post(report_url, body, None);
-                    r = self.IOC_Helper.deserialize(r.content);
-                    if r['response_code'] == 1:
-                        self.__print_result(result_file, r);
-                        break;
-                    if r['response_code'] == 0:
-                        result_file.write("The" + r['url'] + "is not in VirusTotal database");
-                        break;
+                    if r.status_code == 200:
+                        r = self.IOC_Helper.deserialize(r.content);
+                        if r['response_code'] == 1:
+                            self.__print_result(result_file, r);
+                            break;
+                        if r['response_code'] == 0:
+                            result_file.write("The" + r['url'] + "is not in VirusTotal database");
+                            break;
                     if (time.time() > time_out): #set to timeout after 5minutes
+                        ioc_helper.log_error('Timed out at 5 minutes for URL Scanning');
                         break;
         return;
 
@@ -47,7 +51,7 @@ class IOC_URL:
         scan_result = r['positives'];
         if scan_result != 0:
             fd.write('Compromised Url: ' + r['url'] + '\n');
-            fd.write('Scan date: ' + r['scan_date'] + '\n\n');
+            fd.write('Scan date: ' + r['scan_date'] + '\n');
             scans = r['scans'];
             for scan in scans:
                 if scans[scan]['detected'] == True:
@@ -55,9 +59,3 @@ class IOC_URL:
                     fd.write('Result: ' + scans[scan]['result'] + '\n\n');
         else:
             fd.write('Url: ' + r['url'] + ' is safe\n\n');
-
-
-r = [];
-d = IOC_URL();
-r = (d.scan_virustotal(['httpwww.virustotal.com', 'http://yahoo.com', 'http://']));
-d.report_virustotal(r);

@@ -2,7 +2,7 @@ class IOC_IP():
     import IOC_Helper
     import requests
 
-    def scan_ip(self, *ip_list):
+    def scan_ip(self, ip_list):
         ioc_helper = self.IOC_Helper;
         import ipaddress
         valid_ip_array = [];
@@ -15,9 +15,9 @@ class IOC_IP():
         if not valid_ip_array:
             ioc_helper.log_error('no valid IP addresses were provided');
             return;
-        scan_id = self.scan_honeypot(valid_ip_array);
+        scan_id = self.__scan_honeypot__(valid_ip_array);
 
-    def scan_honeypot(self, valid_ip_array):  # puts single items into a list with only that single item
+    def __scan_honeypot__(self, valid_ip_array):  # puts single items into a list with only that single item
         import json  # when a list is given, we dont want it in a list again so we unpack it using *
         import collections
         import datetime
@@ -50,7 +50,3 @@ class IOC_IP():
                     victim['Connection Type'] = payload['connectionType'];
                     victim['Source'] = 'Honeypot';
                     return victim;
-
-
-g = IOC_IP();
-g.scan_ip(*['4', '172.31.13.124', '54']);
